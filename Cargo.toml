@@ -1,0 +1,22 @@
+[package]
+name = "bufchan"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+parking_lot = "0.12"
+
+[dev-dependencies]
+crossbeam = "0.8.2"
+divan = "0.1"
+fastrand = "2"
+flume = "0.11.0"
+kanal = "0.1.0-pre8"
+rayon = "1.8.0"
+quickcheck = "1"
+quickcheck_macros = "1"
+
+[[bench]]
+name = "bench"
+path = "src/bench.rs"
+harness = false
