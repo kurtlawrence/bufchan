@@ -14,17 +14,20 @@ where
     Rx: IntoIterator,
 {
     let (tx, rx) = channel();
-    rayon::ThreadPoolBuilder::new()
-        .build()
-        .unwrap()
-        .install(|| {
-            std::thread::spawn(move || {
-                (0..TASKS).into_par_iter().for_each_with(tx, |tx, n| {
-                    let x = (0..n).fold(0u32, |a, b| a.overflowing_add(b).0);
-                    send(tx, x)
+    std::thread::spawn(|| {
+        // ensure we are on our own thread pool
+        rayon::ThreadPoolBuilder::new()
+            .build()
+            .unwrap()
+            .install(|| {
+                std::thread::spawn(move || {
+                    (0..TASKS).into_par_iter().for_each_with(tx, |tx, n| {
+                        let x = (0..n).fold(0u32, |a, b| a.overflowing_add(b).0);
+                        send(tx, x)
+                    });
                 });
             });
-        });
+    });
     assert_eq!(rx.into_iter().count(), TASKS as usize);
 }
 
