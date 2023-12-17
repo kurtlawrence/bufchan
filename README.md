@@ -1,3 +1,8 @@
+[![GitHub Repo stars](https://img.shields.io/github/stars/kurtlawrence/bufchan)](https://github.com/kurtlawrence/bufchan)
+[![Crates.io](https://img.shields.io/crates/v/bufchan)](https://crates.io/crates/bufchan)
+[![docs.rs](https://img.shields.io/docsrs/bufchan)](https://docs.rs/bufchan/latest/bufchan/)
+![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/kurtlawrence/bufchan/ci.yml)
+
 _High throughput and simple buffered MPSC channel implementation._
 
 `bufchan` is a MPSC channel implementation that prioritises _sender throughput_ over _receiver
