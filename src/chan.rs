@@ -90,7 +90,7 @@ impl<T> Receiver<T> {
                 let &(ref lock, ref cvar) = self.shared.as_ref();
                 let mut q = lock.lock();
                 if q.is_empty() {
-                    cvar.wait(&mut q);
+                    cvar.wait_for(&mut q, std::time::Duration::from_millis(100));
                 }
                 std::mem::swap(&mut self.local, &mut q);
             }
