@@ -56,20 +56,22 @@ impl<T> Sender<T> {
             cvar.notify_one();
         }
     }
+
+    pub fn flush(&mut self) {
+        if self.local.is_empty() {
+            return; // no buffered items, can exit
+        }
+        // we have to block until we get the q
+        let &(ref lock, ref cvar) = self.shared.as_ref();
+        lock.lock().extend(self.local.drain(..));
+        cvar.notify_one();
+    }
 }
 
 impl<T> Drop for Sender<T> {
     fn drop(&mut self) {
-        /*
-        if self.local.is_empty() {
-            return; // no buffered items, can exit
-        }
-        */
-        // we have to block until we get the q
-        let &(ref lock, ref cvar) = self.shared.as_ref();
-        let mut q = lock.lock();
-        q.extend(self.local.drain(..));
-        cvar.notify_one();
+        self.flush();
+        self.shared.1.notify_one();
     }
 }
 
