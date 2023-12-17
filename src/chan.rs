@@ -61,7 +61,7 @@ impl<T> Sender<T> {
             return; // haven't reached threshold
         }
 
-        let &(ref lock, ref cvar) = self.shared.as_ref();
+        let (lock, cvar) = self.shared.as_ref();
         if let Some(mut q) = lock.try_lock() {
             // if we manage to get a lock, extend the queue with our buffered items
             q.extend(self.local.drain(..));
@@ -77,7 +77,7 @@ impl<T> Sender<T> {
         if self.local.is_empty() {
             return; // no buffered items, can exit
         }
-        let &(ref lock, ref cvar) = self.shared.as_ref();
+        let (lock, cvar) = self.shared.as_ref();
         // we have to block until we get the q
         lock.lock().extend(self.local.drain(..));
         // notify that the queue has been updated
@@ -117,7 +117,7 @@ impl<T> Receiver<T> {
                 std::mem::swap(&mut self.local, &mut self.shared.0.lock());
                 break;
             } else {
-                let &(ref lock, ref cvar) = self.shared.as_ref();
+                let (lock, cvar) = self.shared.as_ref();
                 // obtain a lock on the shared queue
                 let mut q = lock.lock();
                 if q.is_empty() {
