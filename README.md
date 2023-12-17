@@ -2,6 +2,7 @@
 [![Crates.io](https://img.shields.io/crates/v/bufchan)](https://crates.io/crates/bufchan)
 [![docs.rs](https://img.shields.io/docsrs/bufchan)](https://docs.rs/bufchan/latest/bufchan/)
 ![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/kurtlawrence/bufchan/ci.yml)
+![](https://tokei.rs/b1/github/kurtlawrence/bufchan)
 
 _High throughput and simple buffered MPSC channel implementation._
 
