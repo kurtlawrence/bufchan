@@ -1,4 +1,4 @@
-use parking_lot::Mutex;
+use parking_lot::{Condvar, Mutex};
 use std::{collections::VecDeque, sync::Arc};
 
 pub fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
@@ -6,7 +6,7 @@ pub fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
 }
 
 pub fn unbounded_with_buffer<T>(buf_size: usize) -> (Sender<T>, Receiver<T>) {
-    let shared = Arc::new(Mutex::new(Default::default()));
+    let shared = Arc::new((Mutex::new(Default::default()), Condvar::new()));
     (
         Sender {
             local: Default::default(),
@@ -19,11 +19,14 @@ pub fn unbounded_with_buffer<T>(buf_size: usize) -> (Sender<T>, Receiver<T>) {
         },
     )
 }
+
+type Shared<T> = Arc<(Mutex<VecDeque<T>>, Condvar)>;
+
 // ###### SENDER ###############################################################
 
 pub struct Sender<T> {
     local: Vec<T>,
-    shared: Arc<Mutex<VecDeque<T>>>,
+    shared: Shared<T>,
     lim: usize,
 }
 
@@ -44,20 +47,29 @@ impl<T> Sender<T> {
         if self.local.len() < self.lim {
             return; // haven't reached threshold
         }
-        if let Some(mut q) = self.shared.try_lock() {
+
+        let &(ref lock, ref cvar) = self.shared.as_ref();
+        if let Some(mut q) = lock.try_lock() {
             // if we manage to get a lock, extend the queue with our buffered items
             q.extend(self.local.drain(..));
+            // notify that the queue has been updated
+            cvar.notify_one();
         }
     }
 }
 
 impl<T> Drop for Sender<T> {
     fn drop(&mut self) {
+        /*
         if self.local.is_empty() {
             return; // no buffered items, can exit
         }
+        */
         // we have to block until we get the q
-        self.shared.lock().extend(self.local.drain(..));
+        let &(ref lock, ref cvar) = self.shared.as_ref();
+        let mut q = lock.lock();
+        q.extend(self.local.drain(..));
+        cvar.notify_one();
     }
 }
 
@@ -65,38 +77,25 @@ impl<T> Drop for Sender<T> {
 
 pub struct Receiver<T> {
     local: VecDeque<T>,
-    shared: Arc<Mutex<VecDeque<T>>>,
+    shared: Shared<T>,
 }
 
 impl<T> Receiver<T> {
     pub fn recv(&mut self) -> Option<T> {
-        // drain from the buffer first
-        if let Some(x) = self.local.pop_front() {
-            return Some(x);
-        }
-        // else wait until we can get a lock and take from the shared queue
-        loop {
-            let ref_count = Arc::strong_count(&self.shared);
-            if let Some(mut q) = self
-                .shared
-                .try_lock_for(std::time::Duration::from_millis(10))
-            {
-                // since our buffer is empty, we can just swap it out
-                std::mem::swap(&mut self.local, &mut q);
-                match self.local.pop_front() {
-                    // buffer has been filled again, return it
-                    Some(x) => return Some(x),
-                    None => {
-                        // now this is interesting!
-                        // there are no more items in the buffer or shared queue
-                        // check the ref count, if only one then there will be no more items!
-                        if ref_count == 1 {
-                            return None; // all finished
-                        }
-                    }
+        while self.local.is_empty() {
+            if Arc::strong_count(&self.shared) == 1 {
+                std::mem::swap(&mut self.local, &mut self.shared.0.lock());
+                break;
+            } else {
+                let &(ref lock, ref cvar) = self.shared.as_ref();
+                let mut q = lock.lock();
+                if q.is_empty() {
+                    cvar.wait(&mut q);
                 }
+                std::mem::swap(&mut self.local, &mut q);
             }
         }
+        self.local.pop_front()
     }
 }
 
