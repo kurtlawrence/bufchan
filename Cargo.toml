@@ -2,6 +2,14 @@
 name = "bufchan"
 version = "0.1.0"
 edition = "2021"
+authors = ["Kurt Lawrence <kurtlawrence.info>"]
+description = "A simple buffered MPSC channel"
+keywords = ["mpsc", "fifo", "channel", "thread"]
+categories = ["concurrency", "data-structures"]
+license = "MIT"
+documentation = "https://docs.rs/bufchan/"
+homepage = "https://github.com/kurtlawrence/bufchan"
+repository = "https://github.com/kurtlawrence/bufchan"
 
 [dependencies]
 parking_lot = "0.12"
