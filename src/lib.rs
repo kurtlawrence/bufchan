@@ -6,4 +6,4 @@ mod chan;
 #[cfg(test)]
 mod test;
 
-pub use chan::{unbounded, Receiver, Sender};
+pub use chan::{unbounded, unbounded_with_buffer, Receiver, Sender};
